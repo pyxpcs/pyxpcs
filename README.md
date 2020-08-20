@@ -1,16 +1,21 @@
-### Hi there 👋
+## Python XPCS Toolkit
 
-<!--
-**xpcs-toolkit/xpcs-toolkit** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+### Install
 
-Here are some ideas to get you started:
+To build a python package including the C/C++ extension. In the root directory:
+```
+python setup.py install
+```
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+To build only the C/C++ code.
+
+```
+mkdir build
+cd build
+cmake ../
+make -j
+```
+
+
+
+

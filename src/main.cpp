@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 
 int add(int i, int j) {
-    return i + j + 1;
+    return i + j + 3;
 }
 
 namespace py = pybind11;
