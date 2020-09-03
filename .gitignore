@@ -2,6 +2,8 @@ build/
 dist/
 _build/
 _generate/
+pip-wheel-metadata/
 *.so
 *.py[cod]
 *.egg-info
+.vscode

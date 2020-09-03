@@ -1,24 +1,3 @@
-## Python XPCS Toolkit
-
-### Install
-
-To build a python package including the C/C++ extension. In the root directory:
-```
-python setup.py install
-```
-
-To build only the C/C++ code.
-
-```
-mkdir build
-cd build
-cmake ../
-make -j
-```
-
-### Running
-
-```
 import pyxpcs as px
 import numpy as np
 
@@ -36,8 +15,19 @@ times = np.meshgrid(np.arange(200), np.arange(100))[0]
 values = np.random.rand(100, 200)
 
 px.multitau(pixels, times, values, **config);
-```
 
+a = []
+for i in range(10):
+    a.append(
+        (np.meshgrid(
+            np.arange(np.random.randint(20)),
+            np.arange(np.random.randint(10))
+        )[0])
+    )
 
+# px.call(a);
+a = px.callback(5, 5, 5);
+print(a.shape)
+print(a)
 
 
