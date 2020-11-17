@@ -52,13 +52,14 @@ int CalculateLevelMax(int frame_count, int dpl)
     return (int) (floor(log2(frame_count) - log2(1.0 + 1.0/(double)(dpl))) - log2(dpl));
 }
 
-py::array_t<float> Multitau(py::array_t<short> pixles, 
+py::array_t<float> Multitau(py::array_t<short> pix, 
               py::list times, 
               py::list vals,
               py::kwargs kwargs) 
 {
-    auto _pixels = pixles.unchecked<1>();
+    auto _pixels = pix.unchecked<1>();
 
+    size_t return_dims = 3;
     size_t frames = kwargs["frames"].cast<int>();
     size_t pixels = kwargs["pixels"].cast<int>();
     size_t dpl = kwargs["dpl"].cast<int>();
@@ -189,17 +190,24 @@ py::array_t<float> Multitau(py::array_t<short> pixles,
         }
     }
 
-    // py::capsule free_when_done(result, [](void *f) {
-    //     float *result = reinterpret_cast<float *>(f);
-    //     delete[] result;
-    // });
+    py::capsule free_when_done(result, [](void *f) {
+        float *test = reinterpret_cast<float *>(f);
+        delete[] test;
+    });
 
-    // return py::array_t<float>(
-    //     {3, pixels, delays_per_level.size()},
+    //  return py::array_t<double>(
+    //     {a, b, c},
     //     // {100*100*8, 100*8, 8},
     //     result,
     //     free_when_done
     // );
+
+    return py::array_t<float>(
+        {return_dims, pixels, delays_per_level.size()},
+        {pixels*delays_per_level.size()*sizeof(float), delays_per_level.size()*sizeof(float), sizeof(float)},
+        result,
+        free_when_done
+    );
 }
 
 int call(py::list list_of_arrays)
@@ -258,7 +266,6 @@ PYBIND11_MODULE(pyxpcs, m) {
     )pbdoc";
 
     m.def("multitau", &Multitau, "Multi-thread version of multitau");
-    // m.def("call", &call, "");
     m.def("callback", &callback, "");
 
 #ifdef VERSION_INFO

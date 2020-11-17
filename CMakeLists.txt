@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(pyxpcs)
 
+set(SOURCE_DIR "src/pyxpcs")
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -8,5 +9,5 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-add_subdirectory(pybind11)
-pybind11_add_module(pyxpcs src/corr.cpp)
+add_subdirectory(lib/pybind11)
+pybind11_add_module(pyxpcs "${SOURCE_DIR}/corr.cpp")
