@@ -1,7 +1,7 @@
 import struct
 import numpy as np
 
-from .array import Array
+from pyxpcs.structs import PyXPCSArray
 
 class Reader:
     """
@@ -19,33 +19,34 @@ class Reader:
 class IMMReader8ID(Reader):
     def __init__(self, filename, **kwargs):
         self.filename = filename
-        self.array = Array()
+        self.array = None
 
-    def read(self, nframes=-1):
-         with open(filename, "rb") as file:
-            header = self.__read_imm_header()
+    def load(self, nframes=-1):
+         with open(self.filename, "rb") as file:
+            header = self.__read_imm_header(file)
             self.rows, self.cols = header['rows'], header['cols']
+            self.array = PyXPCSArray(dims=(self.rows, self.cols))
             self.is_compressed = bool(header['compression'] == 6)
             default_indices = list(range(0, self.rows * self.cols))
             num_pixels = header['dlen']
             payload_size = num_pixels * (6 if self.is_compressed else 2)
-            pos = 0
+            frameIndex = 0
 
             while True:
                 try:
-                    frame = None
+                    num_pixels = header['dlen']
                     if self.is_compressed:
                         indexes = np.fromfile(file, dtype=np.uint32, count=num_pixels)
                         values = np.fromfile(file, dtype=np.uint16, count=num_pixels)
-                        self.array.append(pos, values, indexes)
+                        self.array.append(frameIndex, indexes, values)
                     else:
                         values = np.fromfile(file, dtype=np.uint16, count=num_pixels)
-                        self.array.append(pos, values, default_indices)
-
-                    header = self.__read_imm_header(file)
+                        self.array.append(frameIndex, default_indices, values)
                     # Check for end of file.
-                    if not file.peek(4):
+                    if not file.peek(1):
                         break
+                    header = self.__read_imm_header(file)
+                    frameIndex += 1
                 except Exception as err:
                     raise IOError("IMM file doesn't seems to be of right type") from err
     def array(self):
@@ -118,4 +119,15 @@ class IMMReader8ID(Reader):
 
         return imm_header
 
-    
+
+if __name__ == "__main__":
+    IMM_FILE = "/home/faisal/Development/xpcs-eigen/data/pyxpcs/A002_MJ_PMA_47g61kDa_att2_160C_Lq0_001_00001-00512.imm"
+    reader = IMMReader8ID(IMM_FILE)
+    reader.load()
+
+    from pyxpcs.structs import PyXPCSArray
+    data = reader.array
+    data.sum(1)
+
+    pos, indicies, values = data.get_lil()
+    print(indicies[0][:30])
