@@ -1,3 +1,5 @@
+.ipynb_checkpoints
+
 # Build directory
 build
 docs/_build

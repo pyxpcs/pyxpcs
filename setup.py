@@ -69,7 +69,7 @@ setup(
     long_description='',
     packages=find_packages('src'),
     package_dir={'':'src'},
-    ext_modules=[CMakeExtension('pyxpcs')],
+    ext_modules=[CMakeExtension('libpyxpcs')],
     cmdclass=dict(build_ext=CMakeBuild),
     test_suite='tests',
     zip_safe=False,

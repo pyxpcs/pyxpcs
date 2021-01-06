@@ -252,7 +252,7 @@ py::array_t<double> callback(size_t a, size_t b, size_t c)
 }
 
 
-PYBIND11_MODULE(pyxpcs, m) {
+PYBIND11_MODULE(libpyxpcs, m) {
     m.doc() = R"pbdoc(
         XPCS Analysis Toolkit
         -----------------------
