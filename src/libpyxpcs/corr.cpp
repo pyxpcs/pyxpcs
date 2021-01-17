@@ -52,12 +52,10 @@ int CalculateLevelMax(int frame_count, int dpl)
     return (int) (floor(log2(frame_count) - log2(1.0 + 1.0/(double)(dpl))) - log2(dpl));
 }
 
-py::array_t<float> Multitau2(size_t test, py::array_t<short> frames,
-              py::list pixels, 
-              py::list values
-              ) 
+py::array_t<float> Multitau2(py::array_t<py::object> pixels)
 {
-    size_t return_dims = 3;
+    py::list pi = py::cast<py::list>(pixels[0]);
+
     // size_t no_of_frames = kwargs["frames"].cast<int>();
     // size_t no_of_pixels = kwargs["pixels"].cast<int>();
     // size_t dpl = kwargs["delays_per_level"].cast<int>();
@@ -77,57 +75,56 @@ py::array_t<float> Multitau2(size_t test, py::array_t<short> frames,
 py::array_t<float> Multitau(py::array_t<short> frames, 
               py::list pixels, 
               py::list values,
-              py::dict kwargs) 
+              py::dict config) 
 {
     auto _frames = frames.unchecked<1>();
 
     size_t return_dims = 3;
-    size_t no_of_frames = kwargs["frames"].cast<int>();
-    size_t no_of_pixels = kwargs["pixels"].cast<int>();
-    size_t dpl = kwargs["delays_per_level"].cast<int>();
+    size_t no_of_frames = config["frames"].cast<int>();
+    size_t no_of_pixels = config["pixels"].cast<int>();
+    size_t dpl = config["delays_per_level"].cast<int>();
 
-    size_t w = kwargs["rows"].cast<int>();
-    size_t h = kwargs["cols"].cast<int>();
+    size_t w = config["rows"].cast<int>();
+    size_t h = config["cols"].cast<int>();
 
     size_t max_level = CalculateLevelMax(no_of_frames, dpl);
 
-    // vector<tuple<int,int> > delays_per_level = DelayPerLevel(frames, dpl, max_level);
+    vector<tuple<int,int> > delays_per_level = DelayPerLevel(no_of_frames, dpl, max_level);
 
-    // // float **result = new float[3 * pixels * delays_per_level.size()]
-    // size_t g2_size = 3* pixels * delays_per_level.size();
-    // float* result = new float[g2_size];
+    // float **result = new float[3 * pixels * delays_per_level.size()]
+    size_t g2_size = 3* no_of_pixels * delays_per_level.size();
+    float* result = new float[g2_size];
     
-    // for (int i = 0; i < (3 * pixels * delays_per_level.size()); i++) {
-    //     result[i] = 0.0f;
-    // }
+    for (int i = 0; i < (3 * no_of_pixels * delays_per_level.size()); i++) {
+        result[i] = 0.0f;
+    }
 
-    printf("pixels = \n", no_of_pixels);
+    printf("pixels = %d\n", no_of_pixels);
     printf("width = %d\n", w);
     printf("height = %d\n", h);
     printf("max_level = %d\n", max_level);
 
 
-    for (int i = 0; i < no_of_frames; i++)
-    {
-        printf("%d\n", _frames[i]);
+    // for (int i = 0; i < no_of_frames; i++)
+    // {
+    //     printf("frame# = %d\n", _frames[i]);
 
-        py::array_t<int> pi = py::cast<py::array>(pixels[i]);
-        py::array_t<float> pv = py::cast<py::array>(values[i]);
+    //     py::array_t<int> pi = py::cast<py::array>(pixels[i]);
+    //     py::array_t<float> pv = py::cast<py::array>(values[i]);
 
-        auto _pi =  pi.mutable_unchecked<1>();
-        auto _pv = pv.mutable_unchecked<1>();
+    //     auto _pi =  pi.mutable_unchecked<1>();
+    //     auto _pv = pv.mutable_unchecked<1>();
 
         
-        for (int j = 0; j < no_of_pixels; j++) 
-        {
-            printf("%d - %f\n", _pi[j], _pv[j]);
-        }
+    //     for (int j = 0; j < no_of_pixels; j++) 
+    //     {
+    //         printf("%d - %f\n", _pi[j], _pv[j]);
+    //     }
+
+    // }
 
 
-    }
-
-
-    // for (int i = 0; i < pixels; i++)
+    // for (int i = 0; i < no_of_pixels; i++)
     // {
     //     py::array_t<int> tt = py::cast<py::array>(times[i]);
     //     py::array_t<float> vv = py::cast<py::array>(vals[i]);
@@ -241,8 +238,7 @@ py::array_t<float> Multitau(py::array_t<short> frames,
 
     // py::capsule free_when_done(result, [](void *f) {
     //     float *test = reinterpret_cast<float *>(f);
-    //     delete[] test;
-    // });
+    //   x
 
     //  return py::array_t<double>(
     //     {a, b, c},
