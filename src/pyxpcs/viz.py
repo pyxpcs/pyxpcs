@@ -33,3 +33,18 @@ def plot_pix_sum(sums: np.ndarray, config: PyXPCSDict):
     plt.rc('font', size=20)
 
     return ax
+
+def plot_as_image(data):
+    fig, ax = plt.subplots(1, 1, figsize=(15, 10))
+    colormap = plt.cm.jet
+    colormap.set_under(color='w')
+
+    im = ax.imshow(data, 
+                 cmap=colormap, 
+                 norm=LogNorm(vmin=1e-6, vmax=3e-1),
+                 interpolation='none', 
+                 )
+    fig.colorbar(im, ax=ax)
+    plt.rc('font', size=20)
+
+    return ax

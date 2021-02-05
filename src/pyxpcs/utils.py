@@ -8,7 +8,6 @@ from pyxpcs.config import PyXPCSDict
 def config_from_8idhdf5(file_name, entry_group="/xpcs"):
     f = h5py.File(file_name, 'r')
     paths = f[entry_group].keys()
-    print(paths)
 
     pxdict = PyXPCSDict()
     pxdict['rows'] = f['/measurement/instrument/detector/x_dimension'][0][0]
@@ -45,6 +44,15 @@ def build_roi_1d(dqmap, sqmap):
 
 def buld_roi_2d(dqmap, sqmap):
     pass
+
+def load_results(file_name, path='/exchange', keys=['pixelSum']):
+    f = h5py.File(file_name, 'r')
+    result = {}
+    for key in keys:
+        result[key] = f[f"{path}/{key}"]
+    
+    return result
+
 
 if __name__ == '__main__':
     file = "/home/faisal/Development/xpcs-eigen/data/pyxpcs/A002_MJ_PMA_47g61kDa_att2_160C_Lq0_001_0002-0512.hdf"

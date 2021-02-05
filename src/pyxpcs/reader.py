@@ -1,7 +1,8 @@
 import struct
 import numpy as np
 
-from scipy import sparse
+# from scipy import sparse
+from pyxpcs.structs import PyXPCSArray
 
 class Reader:
     """
@@ -27,7 +28,7 @@ class IMMReader8ID(Reader):
 
             header = self.__read_imm_header(file)
             self.rows, self.cols = header['rows'], header['cols']
-            self.lil_mtx = sparse.lil_matrix((self.no_of_frames, self.rows*self.cols))
+            self.lil_mtx = PyXPCSArray(dims=(self.no_of_frames, self.rows, self.cols))
             self.is_compressed = bool(header['compression'] == 6)
             num_pixels = header['dlen']
             frame_index = 0
@@ -38,16 +39,18 @@ class IMMReader8ID(Reader):
                     if self.is_compressed:
                         indexes = np.fromfile(file, dtype=np.uint32, count=num_pixels)
                         values = np.fromfile(file, dtype=np.uint16, count=num_pixels)
-                        self.lil_mtx[frame_index, indexes] = values
+                        self.lil_mtx.add_frame(frame_index, indexes, values)
                     else:
                         values = np.fromfile(file, dtype=np.uint16, count=num_pixels)
-                        self.lil_mtx[frame_index, :] = values
+                        # self.lil_mtx[frame_index, :] = values
 
                     # Check for end of file.
                     if not file.peek(1):
                         break
                     header = self.__read_imm_header(file)
                     frame_index += 1
+                    if frame_index > self.no_of_frames:
+                        break
                 except Exception as err:
                     raise IOError("IMM file doesn't seems to be of right type") from err
 
