@@ -76,8 +76,6 @@ py::array_t<float> Multitau(py::array_t<int> valid_pixels, py::list rows, py::li
     // float **result = new float[3 * pixels * delays_per_level.size()]
     size_t g2_size = no_of_pixels * delays_per_level.size();
     
-    printf("G2 size = %d\n", g2_size);
-
     float* result = new float[3 * g2_size];
 
     for (int i = 0; i < (3 * g2_size); i++) {
@@ -86,144 +84,134 @@ py::array_t<float> Multitau(py::array_t<int> valid_pixels, py::list rows, py::li
 
     auto _valid_pixels = valid_pixels.mutable_unchecked<1>();
     //default(none) schedule(dynamic, 20) shared(_valid_pixels, delays_per_level, no_of_frames,g2_size, no_of_pixels, rows, values, result)
-    
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < _valid_pixels.size(); i++)
     {   
         int pixno = _valid_pixels(i);
         
-        // printf("%d\n", pixno);
 
         py::array_t<int> tt = py::cast<py::array>(rows[pixno]);
         py::array_t<int> vv = py::cast<py::array>(values[pixno]);
 
-        // auto _times =  tt.mutable_unchecked<1>();
-        // auto _vals = vv.mutable_unchecked<1>();
+        auto _times =  tt.mutable_unchecked<1>();
+        auto _vals = vv.mutable_unchecked<1>();
 
-        // int last_level = 0;
+        int last_level = 0;
 
-        // int last_frame = no_of_frames;
-        // int last_index = _times.size();
+        int last_frame = no_of_frames;
+        int last_index = _times.size();
 
-        // int tau_index = 0;
-        // int g2_index = 0;
-        // int ip_index = 0;
-        // int if_index = 0;
+        int tau_index = 0;
+        int g2_index = 0;
+        int ip_index = 0;
+        int if_index = 0;
 
-        // for (auto it = delays_per_level.begin() ; it != delays_per_level.end(); ++it)
-        // {
-        //     tuple<int, int> tau_level = *it;
-        //     int level = get<0>(tau_level);
-        //     int tau = get<1>(tau_level);   
+        for (auto it = delays_per_level.begin() ; it != delays_per_level.end(); ++it)
+        {
+            tuple<int, int> tau_level = *it;
+            int level = get<0>(tau_level);
+            int tau = get<1>(tau_level);   
 
-        //     // printf("level = %d, tau = %d\n", level, tau);
+            // printf("level = %d, tau = %d\n", level, tau);
 
-        //     // Multitau averaging step
-        //     if (last_level != level)
-        //     {   
-        //         // Handle odd event case.
-        //         if (last_frame % 2)
-        //             last_frame -= 1;
+            // Multitau averaging step
+            if (last_level != level)
+            {   
+                // Handle odd event case.
+                if (last_frame % 2)
+                    last_frame -= 1;
 
-        //         last_frame = last_frame / 2;
-        //         // printf("Last_frame %d\n", last_frame);
+                last_frame = last_frame / 2;
+                // printf("Last_frame %d\n", last_frame);
 
-        //         int index = 0;
-        //         int cnt = 0;
+                int index = 0;
+                int cnt = 0;
                     
-        //         int i0, i1;
-        //         i0 = _times(cnt) / 2.0;
+                int i0, i1;
+                i0 = _times(cnt) / 2.0;
 
-        //         if (last_index > 0 && i0 < last_frame) 
-        //         {
-        //             _times(index) = i0;
-        //             cnt = 1;
-        //         }
+                if (last_index > 0 && i0 < last_frame) 
+                {
+                    _times(index) = i0;
+                    cnt = 1;
+                }
 
-        //         while (cnt < last_index) 
-        //         {
-        //             i1 = _times(cnt) / 2.0;
+                while (cnt < last_index) 
+                {
+                    i1 = _times(cnt) / 2.0;
 
-        //             if (i1 >= last_frame) break;
+                    if (i1 >= last_frame) break;
 
-        //             if (i1 == i0) 
-        //                 _vals(index) += _vals(cnt);
-        //             else 
-        //             {
-        //                 _times(++index) = i1;
-        //                 _vals(index) = _vals(cnt);
-        //             }
+                    if (i1 == i0) 
+                        _vals(index) += _vals(cnt);
+                    else 
+                    {
+                        _times(++index) = i1;
+                        _vals(index) = _vals(cnt);
+                    }
 
-        //             i0 = i1;
-        //             cnt++;
-        //         }
+                    i0 = i1;
+                    cnt++;
+                }
 
-        //         last_index = index + 1;
+                last_index = index + 1;
 
-        //         for (int k = 0 ; k < last_index; k++) 
-        //             _vals(k) /= 2.0f;
-        //     }
+                for (int k = 0 ; k < last_index; k++) 
+                    _vals(k) /= 2.0f;
+            }
 
-        //     if (level > 0)
-        //         tau = tau / pow(2, level);
+            if (level > 0)
+                tau = tau / pow(2, level);
 
-        //     g2_index =  tau_index * no_of_pixels + pixno;
-        //     ip_index =  (tau_index * no_of_pixels + pixno) +  g2_size;
-        //     if_index =  (tau_index * no_of_pixels + pixno) + (2 * g2_size);
+            g2_index =  tau_index * no_of_pixels + pixno;
+            ip_index =  (tau_index * no_of_pixels + pixno) +  g2_size;
+            if_index =  (tau_index * no_of_pixels + pixno) + (2 * g2_size);
 
-        //     // printf("Running to last_index of %d\n", last_index);
-        //     for (int r = 0; r < last_index; r++)
-        //     {
+            // printf("Running to last_index of %d\n", last_index);
+            for (int r = 0; r < last_index; r++)
+            {
                 
-        //         int src = _times(r);
+                int src = _times(r);
 
-        //         if (src < (last_frame - tau) ) {
+                if (src < (last_frame - tau) ) {
 
-        //             result[ip_index] += _vals(r);
+                    result[ip_index] += _vals(r);
                     
-        //             int low = 0;
-        //             for (; low < _times.size(); low++) 
-        //             {   
-        //                 if (_times(low) >= (src + tau) )  break;
-        //             }
+                    int low = 0;
+                    for (; low < _times.size(); low++) 
+                    {   
+                        if (_times(low) >= (src + tau) )  break;
+                    }
 
-        //             if (low != _times.size()) 
-        //             {
-        //               int pos = low - _times(0);
-        //               if (pos < last_index && _times(pos) == (src+tau))
-        //                 result[g2_index] += _vals(r) * _vals(pos);
-        //             }
+                    if (low != _times.size()) 
+                    {
+                      int pos = low - _times(0);
+                      if (pos < last_index && _times(pos) == (src+tau))
+                        result[g2_index] += _vals(r) * _vals(pos);
+                    }
                  
-        //         }
+                }
 
-        //         if (src >= tau && src < last_frame) {
-        //           result[if_index] += _vals(r);
-        //         }
-        //     }
+                if (src >= tau && src < last_frame) {
+                  result[if_index] += _vals(r);
+                }
+            }
 
-        //     if ( (last_frame - tau) > 0) {
-        //         result[g2_index] /= (last_frame - tau);
-        //         result[ip_index] /= (last_frame - tau);
-        //         result[if_index] /= (last_frame - tau);
-        //     }
+            if ( (last_frame - tau) > 0) {
+                result[g2_index] /= (last_frame - tau);
+                result[ip_index] /= (last_frame - tau);
+                result[if_index] /= (last_frame - tau);
+            }
             
-        //     last_level = level;
-        //     tau_index++;
-        // }
+            last_level = level;
+            tau_index++;
+        }
     }
 
     py::capsule free_when_done(result, [](void *f) {
         float *test = reinterpret_cast<float *>(f);
     });
 
-    // //  return py::array_t<double>(
-    // //     {a, b, c},
-    // //     // {100*100*8, 100*8, 8},
-    // //     result,
-    // //     free_when_done
-    // // );
-
-    printf("Done\n");
     size_t return_dims = 3;
     return py::array_t<float>(
         {return_dims, delays_per_level.size(), no_of_pixels},
@@ -231,8 +219,6 @@ py::array_t<float> Multitau(py::array_t<int> valid_pixels, py::list rows, py::li
         result,
         free_when_done
     );
-
-    // return py::array_t<float>(10);
 }
 
 int call(py::list list_of_arrays)
@@ -373,16 +359,16 @@ PYBIND11_MODULE(libpyxpcs, m) {
            multitau
     )pbdoc";
 
-    // m.def("multitau", &Multitau, "Multi-thread version of multitau");
-    m.def("multitau", [](py::array_t<int> valid_pixels, py::list rows, py::list values, py::dict config) {
-        py::gil_scoped_release release;
-        return Multitau(valid_pixels, rows, values, config);
-    });
-    m.def("twice", [](py::array_t<int> valid_pixels, py::list rows) {
-      /* Release GIL before calling into C++ code */
-      py::gil_scoped_release release;
-      return twice(valid_pixels, rows);
-    });
+    m.def("multitau", &Multitau, "Multi-thread version of multitau");
+    // m.def("multitau", [](py::array_t<int> valid_pixels, py::list rows, py::list values, py::dict config) {
+    //     // py::gil_scoped_release release;
+    //     return Multitau(valid_pixels, rows, values, config);
+    // });
+    // m.def("twice", [](py::array_t<int> valid_pixels, py::list rows) {
+    //   /* Release GIL before calling into C++ code */
+    //   py::gil_scoped_release release;
+    //   return twice(valid_pixels, rows);
+    // });
 
     // m.def("multitau_test", &Multitau_2, "Multi-thread version of multitau");
     // m.def("callback", &callback, "");
