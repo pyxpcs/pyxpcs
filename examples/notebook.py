@@ -25,16 +25,31 @@ data.finalize()
 
 valid_pixels, rows, values = data.get_lil()
 
-config = {
-    'frames': frames_to_process,
-    'pixels': config['cols'] * config['rows'],
-    'delays_per_level': 4,
-    'rows': config['rows'],
-    'cols': config['cols'],  
-}
+# print(type(valid_pixels))
+# print(type(rows))
+# print(type(values))
+
+# print(valid_pixels.shape)
+# print(rows.shape)
+# print(values.shape)
+
+# config = {
+#     'frames': frames_to_process,
+#     'pixels': config['cols'] * config['rows'],
+#     'delays_per_level': 4,
+#     'rows': config['rows'],
+#     'cols': config['cols'],  
+# }
 
 
-ret = libpx.multitau(valid_pixels, rows, values, config)
-print(type(ret))
+# ret = libpx.multitau(valid_pixels, rows, values, config)
+# print(type(ret))
+# print(ret.shape)
+
+# print(ret[0, 452]) # 0.041667, 
 
 
+# print(config['rows'], config['cols'])
+# # xs = np.arange(10).astype("double")
+# print(rows[5])
+libpx.twice(valid_pixels, rows)
