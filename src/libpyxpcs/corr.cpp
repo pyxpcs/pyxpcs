@@ -3,12 +3,12 @@
 #include <math.h>
 #include <vector>
 #include <tuple>
-
 #include <omp.h>
-
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+
+#include "row.h"
 
 namespace py = pybind11;
 
@@ -18,6 +18,8 @@ using std::vector;
 using std::tuple;
 using std::get;
 
+PYBIND11_MAKE_OPAQUE(std::vector<int>);
+PYBIND11_MAKE_OPAQUE(std::vector<float>);
 
 vector<tuple<int, int>> DelayPerLevel(int frame_count, int dpl, int max_delay)
 {
@@ -50,11 +52,6 @@ int CalculateLevelMax(int frame_count, int dpl)
     if (frame_count < dpl * 2) return 0;
 
     return (int) (floor(log2(frame_count) - log2(1.0 + 1.0/(double)(dpl))) - log2(dpl));
-}
-
-py::array_t<float> Multitau_2(py::list rows, py::dict config) 
-{
-    return py::array_t<float>(10);   
 }
 
 py::array_t<float> Multitau(py::array_t<int> valid_pixels, py::list rows, py::list values, py::dict config) 
@@ -238,113 +235,11 @@ int call(py::list list_of_arrays)
     return 0;
 }
 
-py::array_t<double> callback(size_t a, size_t b, size_t c)
-{
-    size_t size = a * b * c;
-    double *result = new double[size];
-
-    for (int i = 0; i < size; i++) {
-        result[i] = (double) i;
+void test(Row &list) {
+    for (auto entry: list.indxPtr) {
+        std::cout << entry <<std::endl;
     }
-
-    // memory when destroyed:
-    py::capsule free_when_done(result, [](void *f) {
-        double *result = reinterpret_cast<double *>(f);
-        delete[] result;
-    });
-
-    return py::array_t<double>(
-        {a, b, c},
-        // {100*100*8, 100*8, 8},
-        result,
-        free_when_done
-    );
-
 }
-
-// Passing in an array of doubles
-void twice(py::array_t<int> valid_pixels, py::list rows) {
-    py::gil_scoped_acquire acquire;
-
-    // py::buffer_info info = xs.request();
-    // auto ptr = static_cast<double *>(info.ptr);
-
-    // int n = 1;
-    // for (auto r: info.shape) {
-    //   n *= r;
-    // }
-
-    // #pragma omp parallel for
-    // for (int i = 0; i <n; i++) {
-    //     *ptr++ *= 2;
-    // }
-
-    auto _valid_pixels = valid_pixels.mutable_unchecked<1>();
-    
-    // py::array_t<int> tt = py::cast<py::array>(rows[pixno]);
-    // py::array_t<int> vv = py::cast<py::array>(values[pixno]);
-
-        // auto _times =  tt.mutable_unchecked<1>();
-        // auto _vals = vv.mutable_unchecked<1>();
-
-        // int last_level = 0;
-
-        // int last_frame = no_of_frames;
-        // int last_index = _times.size();
-
-        // int tau_index = 0;
-        // int g2_index = 0;
-        // int ip_index = 0;
-        // int if_index = 0;
-    // std::vector<py::array_t<int>* > ptrs;
-    std::vector<pybind11::detail::unchecked_mutable_reference<int, 1> > ptrs;
-    for (int i = 0; i < _valid_pixels.size(); i++)
-    {
-        py::array_t<int> tt = py::cast<py::array>(rows[i]);
-        auto _times =  tt.mutable_unchecked<1>();
-        // printf("Valid pixel %d and frame# at 0 %d\n", i, _times[0]);
-        ptrs.push_back(_times);
-    }
-
-
-
-    // printf("%d\n", *(ptrs[5]);
-    auto _times = ptrs.at(5);
-    printf("value = %d\n", _times[0]);
-
-    // auto _times = ptrs[4]->mutable_unchecked<1>();
-    // auto _times = ptrs[0];
-    // printf("value = %d\n", _times[1]);
-
-    //default(none) schedule(dynamic, 20) shared(_valid_pixels, delays_per_level, no_of_frames,g2_size, no_of_pixels, rows, values, result)
-    // #pragma omp parallel for
-    // for (int i = 0; i < _valid_pixels.size(); i++)
-    // {   
-    //     int pixno = _valid_pixels(i);
-    //     // auto ptr = static_cast<int *>(rows[pixno]);
-    //     // py::array_t<int> tt = py::cast<py::array>(rows[pixno]);
-    //     // py::array_t<int> vv = py::cast<py::array>(values[pixno]);
-
-    //     auto _times =  ptrs[i]->mutable_unchecked<1>();
-    //     // auto _vals = vv.mutable_unchecked<1>();
-
-    //             // auto ptr = static_cast<int *>(info.ptr);
-    //     printf("%d , %d\n", omp_get_thread_num(), _times[0]);
-    // }
-}
-
-
-// PYBIND11_PLUGIN(code) {
-//   pybind11::module m("libpyxpcs", "Multi-thread version of multitau");
-//   m.def("multitau", [](py::array_t<int> valid_pixels, py::list rows, py::list values, py::dict config) {
-//       /* Release GIL before calling into C++ code */
-//       py::gil_scoped_release release;
-//       return Multitau(valid_pixels, rows, values, config);
-//     });
-
-//   return m.ptr();
-// }
-
 
 PYBIND11_MODULE(libpyxpcs, m) {
     m.doc() = R"pbdoc(
@@ -359,7 +254,36 @@ PYBIND11_MODULE(libpyxpcs, m) {
            multitau
     )pbdoc";
 
+    py::class_<IntList>(m, "IntList")
+        .def(py::init<>())
+        .def("pop_back", &IntList::pop_back)
+        /* There are multiple versions of push_back(), etc. Select the right ones. */
+        .def("push_back", (void (IntList::*)(const int &)) &IntList::push_back)
+        .def("back", (int &(IntList::*)()) &IntList::back)
+        .def("__len__", [](const IntList &v) { return v.size(); })
+        .def("__iter__", [](IntList &v) {
+            return py::make_iterator(v.begin(), v.end());
+        }, py::keep_alive<0, 1>());
+        
+    py::class_<FloatList>(m, "FloatList")
+        .def(py::init<>())
+        .def("pop_back", &FloatList::pop_back)
+        /* There are multiple versions of push_back(), etc. Select the right ones. */
+        .def("push_back", (void (FloatList::*)(const float &)) &FloatList::push_back)
+        .def("back", (float &(FloatList::*)()) &FloatList::back)
+        .def("__len__", [](const FloatList &v) { return v.size(); })
+        .def("__iter__", [](FloatList &v) {
+            return py::make_iterator(v.begin(), v.end());
+        }, py::keep_alive<0, 1>());
+
+    py::class_<Row>(m, "Row")
+        .def(py::init<>())
+        .def_readwrite("indxPtr", &Row::indxPtr)
+        .def_readwrite("valPtr", &Row::valPtr);
+
     m.def("multitau", &Multitau, "Multi-thread version of multitau");
+    m.def("test", &test);
+    
     // m.def("multitau", [](py::array_t<int> valid_pixels, py::list rows, py::list values, py::dict config) {
     //     // py::gil_scoped_release release;
     //     return Multitau(valid_pixels, rows, values, config);
