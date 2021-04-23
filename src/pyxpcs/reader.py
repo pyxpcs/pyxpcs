@@ -16,6 +16,8 @@ class IMMReader8ID(Reader):
     def __init__(self, filename:str, no_of_frames:int, skip_frames:int = 0):
         self.filename = filename
         self.no_of_frames = no_of_frames
+        self.index_data = []
+        self.value_data = []
         self.skip_frames = skip_frames
         assert (self.skip_frames <= self.no_of_frames)
         self.lil_mtx = None
@@ -28,7 +30,6 @@ class IMMReader8ID(Reader):
 
             header = self.__read_imm_header(file)
             self.rows, self.cols = header['rows'], header['cols']
-            self.lil_mtx = PyXPCSArray(dims=(self.no_of_frames, self.rows, self.cols))
             self.is_compressed = bool(header['compression'] == 6)
             num_pixels = header['dlen']
             frame_index = 0
@@ -39,10 +40,11 @@ class IMMReader8ID(Reader):
                     if self.is_compressed:
                         indexes = np.fromfile(file, dtype=np.uint32, count=num_pixels)
                         values = np.fromfile(file, dtype=np.uint16, count=num_pixels)
-                        self.lil_mtx.add_frame(frame_index, indexes, values)
+                        self.index_data.append(indexes)
+                        self.value_data.append(values)
                     else:
                         values = np.fromfile(file, dtype=np.uint16, count=num_pixels)
-                        # self.lil_mtx[frame_index, :] = values
+                        #TODO
 
                     # Check for end of file.
                     if not file.peek(1):
@@ -53,8 +55,6 @@ class IMMReader8ID(Reader):
                         break
                 except Exception as err:
                     raise IOError("IMM file doesn't seems to be of right type") from err
-
-        print(frame_index)
         
     def __skip__(self, file):
         for _ in range(self.skip_frames):
@@ -64,8 +64,8 @@ class IMMReader8ID(Reader):
             payload_size = num_pixels * (6 if is_compressed else 2)
             file.read(payload_size)
 
-    def array(self):
-        return self.lil_mtx
+    def data(self):
+        return self.index_data, self.value_data
 
     def __read_imm_header(self, file):
         imm_headformat = "ii32s16si16siiiiiiiiiiiiiddiiIiiI40sf40sf40sf40sf40sf40sf40sf40sf40sf40sfffiiifc295s84s12s"

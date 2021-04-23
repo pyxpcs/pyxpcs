@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using IntList = std::vector<int>;
 using FloatList = std::vector<float>;
 
-class Row
+class Row 
 {
 
 public:
@@ -64,13 +64,15 @@ public:
   {
     
   }
-  Row(int size)
-  {
-      indxPtr.reserve(size);
-      valPtr.reserve(size);
-  }
+  
   ~Row()
   {
+  }
+
+  void Push(const int& fno, const float& value)
+  {
+    indxPtr.push_back(fno);
+    valPtr.push_back(value);
   }
 
   IntList indxPtr;

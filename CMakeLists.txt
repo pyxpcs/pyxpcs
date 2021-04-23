@@ -10,4 +10,4 @@ if (OPENMP_FOUND)
 endif()
 
 add_subdirectory(lib/pybind11)
-pybind11_add_module(libpyxpcs "${SOURCE_DIR}/corr.cpp")
+pybind11_add_module(libpyxpcs "${SOURCE_DIR}/sparse_data.cpp" "${SOURCE_DIR}/corr.cpp")

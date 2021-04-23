@@ -67,7 +67,6 @@ SparseData::~SparseData()
 
 std::shared_ptr<Row>& SparseData::Pixel(const int& index)
 {
-    valid_pixels_[index] = 1;
     return m_data.at(index);
 }
 
@@ -77,7 +76,7 @@ std::vector<int>& SparseData::ValidPixels()
 
   for (int i = 0; i < m_rows; i++)
   {
-    if (valid_pixels_[i] == 1)
+    if (m_data.at(i)->indxPtr.size() > 0)
     {
       validPixels.push_back(i);
     }
