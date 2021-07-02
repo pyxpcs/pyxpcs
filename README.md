@@ -1,5 +1,17 @@
 ## Python XPCS Toolkit
 
+### Dependencies
+
+* CMake version 3+
+* OpenMP
+* HDF5
+
+### Fetch the code
+
+```
+git clone --recurse-submodules https://github.com/pyxpcs/pyxpcs.git
+```
+
 ### Install
 
 To build a python package including the C/C++ extension. In the root directory:
