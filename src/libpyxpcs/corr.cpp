@@ -4,6 +4,7 @@
 #include <vector>
 #include <tuple>
 #include <omp.h>
+#include <chrono>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -223,6 +224,8 @@ py::array_t<float> Multitau(SparseData* data, py::dict config)
 {
     py::gil_scoped_acquire acquire;
 
+    // const auto t0(std::chrono::steady_clock::now());
+    
     size_t no_of_frames = config["frames"].cast<int>();
     size_t no_of_pixels = config["pixels"].cast<int>();
     size_t dpl = config["delays_per_level"].cast<int>();
@@ -244,9 +247,15 @@ py::array_t<float> Multitau(SparseData* data, py::dict config)
         result[i] = 0.0f;
     }
 
+    // long threads[12];
+    // for (int i = 0; i < 12; i++)
+    //     threads[i] = 0;
+
     #pragma omp parallel for default(none) schedule(dynamic, 20) shared(validPixels, delays_per_level, no_of_frames, no_of_pixels, g2_size, result, data)
     for (int i = 0; i < validPixels.size(); i++)
     {
+        const auto t0(std::chrono::steady_clock::now());
+
         std::shared_ptr<Row> row = data->Pixel(validPixels.at(i));
 
         int ll = 0;
@@ -349,7 +358,24 @@ py::array_t<float> Multitau(SparseData* data, py::dict config)
             tauIndex++;
         }
         // break;
+
+        int tid = omp_get_thread_num();
+        
+        const auto t1(std::chrono::steady_clock::now());
+        const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>( t1 - t0).count();
+        // threads[tid] += duration_ms;
+        // printf("Time for %d, %f\n", tid, duration_ms/1000);
     }
+
+    // for (int i =0 ; i < 12; i++) {
+    //     printf("Time for tid %d is %f\n", i, threads[i]/1000);
+    // }
+
+    // const auto t1(std::chrono::steady_clock::now());
+    // const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>( t1 - t0).count();        
+    // std::cout<<"Time "<<std::endl;
+    // std::cout<<duration_ms/1000<<std::endl;
+    // printf("Done\n");
 
      py::capsule free_when_done(result, [](void *f) {
         float *test = reinterpret_cast<float *>(f);
@@ -362,6 +388,8 @@ py::array_t<float> Multitau(SparseData* data, py::dict config)
         result,
         free_when_done
     );
+
+
 }
 
 
@@ -387,6 +415,66 @@ std::shared_ptr<SparseData> SparseLIL(py::list indices, py::list values, const i
     return data;
 }
 
+std::shared_ptr<SparseData> SparseLIL2(py::array indices, py::array frames, py::array values, const int& no_of_pixels)
+{
+    std::shared_ptr<SparseData> data = std::shared_ptr<SparseData>(new SparseData(no_of_pixels, 10));
+
+    int fno = 0;
+    py::array_t<int> indices_ = py::cast<py::array>(indices);
+    py::array_t<int> frames_ = py::cast<py::array>(frames);
+    py::array_t<int> values_ = py::cast<py::array>(values);
+
+    auto indices__ = indices_.unchecked<1>();
+    auto frames__ = frames_.unchecked<1>();
+    auto values__ = values_.unchecked<1>();
+
+    for (int i = 0; i < indices__.shape(0); i++) {
+        std::shared_ptr<Row> row = data->Pixel(indices__[i]); 
+        row->indxPtr.push_back(frames__[i]);
+        row->valPtr.push_back(values__[i]);
+    }
+
+    return data;
+}
+
+
+std::shared_ptr<SparseData> SparseLIL3(py::array_t<unsigned short int> values)
+{
+
+    py::buffer_info buf1 = values.request();
+
+    unsigned short int *ptr1 = (unsigned short int *) buf1.ptr;
+    int frames = buf1.shape[0];
+    int rows = buf1.shape[1];
+    int cols = buf1.shape[2];
+
+    printf("%d, %d, %d\n", frames, rows, cols);
+
+    std::shared_ptr<SparseData> data = std::shared_ptr<SparseData>(new SparseData(rows*cols, 1000));
+
+
+    for (long idx = 0; idx < frames; idx++) {
+        for (long idy = 0; idy < rows; idy++) {
+            for(long idz = 0; idz < cols; idz++) {
+
+
+                int val = ptr1[idx*(rows*cols) + idy*cols + idz];
+                if (val <= 0)
+                    continue;
+                
+                // printf("pixel # %d\n", (idy*cols + idz));
+
+                std::shared_ptr<Row> row = data->Pixel(idy*cols + idz); 
+                row->indxPtr.push_back(idx);
+                row->valPtr.push_back(val);
+            }
+        }
+    }
+
+    return data;
+  
+}
+
 void test(std::shared_ptr<SparseData> data) {
     std::shared_ptr<Row> row = data->Pixel(0);
 
@@ -398,6 +486,41 @@ void test(std::shared_ptr<SparseData> data) {
         std::cout << entry <<std::endl;
     }
 }
+
+py::array_t<double> add_arrays(py::array_t<double> input1, py::array_t<double> input2) {
+  py::buffer_info buf1 = input1.request();
+  py::buffer_info buf2 = input2.request();
+
+  if (buf1.size != buf2.size) {
+    throw std::runtime_error("Input shapes must match");
+  }
+
+  /*  allocate the buffer */
+  py::array_t<double> result = py::array_t<double>(buf1.size);
+
+  py::buffer_info buf3 = result.request();
+
+  double *ptr1 = (double *) buf1.ptr,
+         *ptr2 = (double *) buf2.ptr,
+         *ptr3 = (double *) buf3.ptr;
+  int X = buf1.shape[0];
+  int Y = buf1.shape[1];
+  int Z = buf1.shape[2];
+
+  for (size_t idx = 0; idx < X; idx++) {
+    for (size_t idy = 0; idy < Y; idy++) {
+        for(size_t idz = 0; idz < Z; idz++) {
+            ptr3[idx*Y + idy*Z + idz] = ptr1[idx*Y + idy*Z + idz] + ptr2[idx*Y + idy*Z + idz];
+        }
+    }
+  }
+ 
+  // reshape array to match input shape
+  result.resize({X,Y,Z});
+
+  return result;
+}
+
 
 PYBIND11_MODULE(libpyxpcs, m) {
     m.doc() = R"pbdoc(
@@ -454,7 +577,10 @@ PYBIND11_MODULE(libpyxpcs, m) {
     // });
 
     // m.def("multitau_test", &Multitau_2, "Multi-thread version of multitau");
-    m.def("sparse_lil", &SparseLIL, "");
+    m.def("sparse_lil_index_value", &SparseLIL, "");
+    m.def("sparse_lil_index_value_count", &SparseLIL2, "");
+    m.def("sparse_lil_value", &SparseLIL3, "");
+    m.def("add_arrays", &add_arrays, "Add two NumPy arrays");
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

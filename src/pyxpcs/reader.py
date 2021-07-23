@@ -134,6 +134,20 @@ class IMMReader8ID(Reader):
 
         return imm_header
 
+class RigakuReader(Reader):
+    def __init__(self, file):
+        self.file = file
+    
+    def __load(self):
+        with open(self.file, 'r') as f:
+            a = np.fromfile(f, dtype=np.uint64)
+
+            b = (a >> 5+11)
+            pix_ind = (b & 2**21-1).astype(int)
+            pix_count = (a & 2**12-1).astype(int)
+            pix_frame = (a >> 64-24).astype(int)
+
+
 
 if __name__ == "__main__":
     IMM_FILE = "/home/faisal/Development/xpcs-eigen/data/pyxpcs/A002_MJ_PMA_47g61kDa_att2_160C_Lq0_001_00001-00512.imm"

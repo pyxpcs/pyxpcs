@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(libpyxpcs)
 
+set(CMAKE_BUILD_TYPE RELEASE)
+
+
 set(SOURCE_DIR "src/libpyxpcs")
 
 find_package(OpenMP)
