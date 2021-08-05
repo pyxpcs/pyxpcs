@@ -13,13 +13,13 @@ class Reader:
         pass
 
 class IMMReader8ID(Reader):
-    def __init__(self, filename:str, no_of_frames:int, skip_frames:int = 0):
+    def __init__(self, filename:str, no_of_frames:int=-1, skip_frames:int = 0):
         self.filename = filename
         self.no_of_frames = no_of_frames
         self.index_data = []
         self.value_data = []
         self.skip_frames = skip_frames
-        assert (self.skip_frames <= self.no_of_frames)
+        self.frames_read = 0
         self.lil_mtx = None
         self.__load__()
 
@@ -51,7 +51,8 @@ class IMMReader8ID(Reader):
                         break
                     header = self.__read_imm_header(file)
                     frame_index += 1
-                    if frame_index > self.no_of_frames:
+                    self.frames_read += 1
+                    if self.no_of_frames != -1 and frame_index > self.no_of_frames:
                         break
                 except Exception as err:
                     raise IOError("IMM file doesn't seems to be of right type") from err

@@ -7,22 +7,22 @@ from pyxpcs.config import PyXPCSDict
 
 def config_from_8idhdf5(file_name, entry_group="/xpcs"):
     f = h5py.File(file_name, 'r')
-    paths = f[entry_group].keys()
 
     pxdict = PyXPCSDict()
     pxdict['rows'] = f['/measurement/instrument/detector/x_dimension'][0][0]
     pxdict['cols'] = f['/measurement/instrument/detector/y_dimension'][0][0]
     pxdict['pixels'] = pxdict['rows'] * pxdict['cols']
-    pxdict['frame_start'] = f[f"{entry_group}/data_begin"][0][0]
-    pxdict['frame_end'] = f[f"{entry_group}/data_end"][0][0]
-    pxdict['frame_start_limit'] = f[f"{entry_group}/data_begin_todo"][0][0]
-    pxdict['frame_end_limit'] = f[f"{entry_group}/data_end_todo"][0][0]
-    pxdict['frames'] = int(pxdict['frame_end_limit'] - pxdict['frame_start_limit'])
-    pxdict['delays_per_level'] = f[f"{entry_group}/delays_per_level"][0][0]
-    pxdict['dqmap'] = np.squeeze(f[f"{entry_group}/dqmap"][:])
-    pxdict['sqmap'] = np.squeeze(f[f"{entry_group}/sqmap"][:])
-    pxdict['roi_1d'] = build_roi_1d(pxdict['dqmap'], pxdict['sqmap'])
-    # pxdict['roi_2d'] = build_roi_2d(dqmap, sqmap)
+    if entry_group in f:
+        pxdict['frame_start'] = f[f"{entry_group}/data_begin"][0][0]
+        pxdict['frame_end'] = f[f"{entry_group}/data_end"][0][0]
+        pxdict['frame_start_limit'] = f[f"{entry_group}/data_begin_todo"][0][0]
+        pxdict['frame_end_limit'] = f[f"{entry_group}/data_end_todo"][0][0]
+        pxdict['frames'] = int(pxdict['frame_end_limit'] - pxdict['frame_start_limit'])
+        pxdict['delays_per_level'] = f[f"{entry_group}/delays_per_level"][0][0]
+        pxdict['dqmap'] = np.squeeze(f[f"{entry_group}/dqmap"][:])
+        pxdict['sqmap'] = np.squeeze(f[f"{entry_group}/sqmap"][:])
+        pxdict['roi_1d'] = build_roi_1d(pxdict['dqmap'], pxdict['sqmap'])
+        # pxdict['roi_2d'] = build_roi_2d(dqmap, sqmap)
     pxdict['beam_center_x'] = f['/measurement/instrument/acquisition/beam_center_x'][0][0]
     pxdict['beam_center_y'] = f['/measurement/instrument/acquisition/beam_center_y'][0][0]
     pxdict['detector_distance'] = f['/measurement/instrument/detector/distance'][0][0]
