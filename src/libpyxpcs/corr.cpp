@@ -393,18 +393,26 @@ py::array_t<float> Multitau(SparseData* data, py::dict config)
 }
 
 
-std::shared_ptr<SparseData> SparseLIL(py::list indices, py::list values, const int& no_of_pixels)
+std::shared_ptr<SparseData> SparseLIL(py::list indices, py::list values, const int& no_of_pixels, py::array mask)
 {
     std::shared_ptr<SparseData> data = std::shared_ptr<SparseData>(new SparseData(no_of_pixels, 10));
+    py::array_t<int> mask_ = py::cast<py::array>(mask);
+    auto mask__ = mask_.unchecked<1>();
 
     int fno = 0;
     for (int i = 0; i < indices.size(); i++) {
         py::array_t<int> indices_ = py::cast<py::array>(indices[i]);
         py::array_t<float> values_ = py::cast<py::array>(values[i]);
+
         auto indices__ = indices_.unchecked<1>();
         auto values__ = values_.unchecked<1>();
 
         for (int j = 0; j < indices__.shape(0); j++) {
+            
+            if (mask__[indices__[j]] <= 0) {
+                continue;
+            }
+
             std::shared_ptr<Row> row = data->Pixel(indices__[j]);
             row->indxPtr.push_back(fno);
             row->valPtr.push_back(values__[j]);
